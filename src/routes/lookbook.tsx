@@ -43,7 +43,7 @@ function Lookbook() {
       <header className="mx-auto max-w-7xl px-5 pt-36 pb-14 sm:px-8">
         <p className="eyebrow">Volume 01 series</p>
         <h1 className="mt-5 text-5xl sm:text-7xl">
-          <RevealWord text="Porto, 06:40" />
+          <RevealWord text="Porto, 06:40" onLoad />
         </h1>
       </header>
 

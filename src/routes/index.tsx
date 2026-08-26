@@ -73,10 +73,10 @@ function Home() {
             Volume 01 — Heavyweight
           </motion.p>
           <h1 className="mt-6 max-w-4xl text-5xl leading-[0.95] sm:text-7xl lg:text-8xl">
-            <RevealWord text="Weight you can" />
+            <RevealWord text="Weight you can" onLoad />
             <br />
-            <span className="text-gold-gradient">
-              <RevealWord text="feel." />
+            <span className="text-gold">
+              <RevealWord text="feel." onLoad />
             </span>
           </h1>
           <motion.div

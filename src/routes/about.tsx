@@ -56,10 +56,10 @@ function About() {
       <header className="mx-auto max-w-7xl px-5 pt-36 pb-16 sm:px-8">
         <p className="eyebrow">The atelier</p>
         <h1 className="mt-5 max-w-3xl text-5xl sm:text-7xl">
-          <RevealWord text="One atelier." />
+          <RevealWord text="One atelier." onLoad />
           <br />
           <span className="text-gold-gradient">
-            <RevealWord text="Four stages." />
+            <RevealWord text="Four stages." onLoad />
           </span>
         </h1>
       </header>

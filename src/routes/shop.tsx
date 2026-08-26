@@ -35,7 +35,7 @@ function Shop() {
       <header className="mx-auto max-w-7xl px-5 pt-36 pb-14 sm:px-8">
         <p className="eyebrow">Volume 01</p>
         <h1 className="mt-5 text-5xl sm:text-7xl">
-          <RevealWord text="The collection" />
+          <RevealWord text="The collection" onLoad />
         </h1>
         <Reveal delay={0.2}>
           <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted-foreground">
