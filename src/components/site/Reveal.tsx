@@ -22,8 +22,17 @@ export function Reveal({ children, delay = 0, y = 28, className }: RevealProps) 
   );
 }
 
-export function RevealWord({ text, className }: { text: string; className?: string }) {
+export function RevealWord({
+  text,
+  className,
+  onLoad = false,
+}: {
+  text: string;
+  className?: string;
+  onLoad?: boolean;
+}) {
   const words = text.split(" ");
+  const anim = { y: 0 };
   return (
     <span className={className}>
       {words.map((word, i) => (
@@ -31,9 +40,8 @@ export function RevealWord({ text, className }: { text: string; className?: stri
           <motion.span
             className="inline-block"
             initial={{ y: "110%" }}
-            whileInView={{ y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.9, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+            {...(onLoad ? { animate: anim } : { whileInView: anim, viewport: { once: true } })}
+            transition={{ duration: 0.9, delay: 0.25 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
           >
             {word}
             {i < words.length - 1 ? "\u00A0" : ""}
@@ -43,3 +51,4 @@ export function RevealWord({ text, className }: { text: string; className?: stri
     </span>
   );
 }
+
