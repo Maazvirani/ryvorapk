@@ -2,22 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Marquee } from "@/components/site/Marquee";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
-import { fetchShopifyProducts } from "@/lib/shopify";
+import { products } from "@/lib/products";
 import hero from "@/assets/hero.jpg";
 import fabric from "@/assets/detail-fabric.jpg";
 import lookbook from "@/assets/lookbook.jpg";
-
-const productsQuery = () => ({
-  queryKey: ["shopify-products"],
-  queryFn: () => fetchShopifyProducts(50),
-});
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,7 +31,6 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(productsQuery()),
   component: Home,
 });
 
@@ -47,7 +40,6 @@ function Home() {
   const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "60%"]);
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  const { data: products = [] } = useQuery(productsQuery());
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,21 +115,11 @@ function Home() {
           </Link>
         </Reveal>
 
-        {products.length === 0 ? (
-          <div className="mt-14 py-16 text-center">
-            <p className="eyebrow text-muted-foreground">No products found</p>
-            <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
-              Your Shopify store is connected but has no products yet. Tell me what pieces you want to add and I'll
-              create them in your live catalog.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {products.slice(0, 4).map((p, i) => (
-              <ProductCard key={p.node.handle} product={p} index={i} />
-            ))}
-          </div>
-        )}
+        <div className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((p, i) => (
+            <ProductCard key={p.slug} product={p} index={i} />
+          ))}
+        </div>
       </section>
 
       {/* Craft split */}

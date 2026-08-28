@@ -1,17 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
 import { Marquee } from "@/components/site/Marquee";
-import { fetchShopifyProducts } from "@/lib/shopify";
-
-const shopifyProductsQuery = () => ({
-  queryKey: ["shopify-products"],
-  queryFn: () => fetchShopifyProducts(50),
-});
+import { products } from "@/lib/products";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -31,13 +25,10 @@ export const Route = createFileRoute("/shop")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(shopifyProductsQuery()),
   component: Shop,
 });
 
 function Shop() {
-  const { data: products = [] } = useQuery(shopifyProductsQuery());
-
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -55,21 +46,11 @@ function Shop() {
       </header>
       <Marquee items={["Free worldwide shipping over $200", "Duties included", "30-day returns", "Made in Portugal"]} />
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8">
-        {products.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="eyebrow text-muted-foreground">No products found</p>
-            <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
-              Your Shopify store is connected but has no products yet. Tell me what pieces you want to add and I'll
-              create them in your live catalog.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((p, i) => (
-              <ProductCard key={p.node.handle} product={p} index={i} />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((p, i) => (
+            <ProductCard key={p.slug} product={p} index={i} />
+          ))}
+        </div>
       </section>
       <SiteFooter />
     </div>

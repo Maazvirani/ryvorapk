@@ -1,9 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { motion, useScroll, useMotionValueEvent } from "motion/react";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
-
-import { CartDrawer } from "@/components/site/CartDrawer";
+import { Menu, X, ShoppingBag } from "lucide-react";
 
 const links = [
   { to: "/shop", label: "Shop" },
@@ -47,7 +45,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <CartDrawer />
+          <Link
+            to="/shop"
+            className="hidden items-center gap-2 border border-border px-4 py-2 text-xs tracking-[0.2em] uppercase text-foreground transition-colors hover:border-gold hover:text-gold md:inline-flex"
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+            Bag (0)
+          </Link>
           <button
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
