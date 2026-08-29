@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { formatPrice, getProduct, products } from "@/lib/products";
+import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: ({ params }) => {
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { product } = Route.useLoaderData();
   const [size, setSize] = useState<string | null>(null);
+  const { addLine, setOpen: setCartOpen } = useCart();
   const related = products.filter((p) => p.slug !== product.slug).slice(0, 3);
 
   return (
@@ -102,11 +104,22 @@ function ProductPage() {
             </div>
 
             <button
-              onClick={() =>
-                size
-                  ? toast.success(`${product.name} · ${size} added to your bag`)
-                  : toast.error("Select a size first")
-              }
+              onClick={() => {
+                if (!size) {
+                  toast.error("Select a size first");
+                  return;
+                }
+                addLine({
+                  slug: product.slug,
+                  name: product.name,
+                  size,
+                  price: product.price,
+                  image: product.image,
+                  colorway: product.colorway,
+                });
+                setCartOpen(true);
+                toast.success(`${product.name} · ${size} added to your bag`);
+              }}
               className="mt-8 w-full bg-primary px-8 py-4 text-xs tracking-[0.24em] uppercase text-primary-foreground transition-transform duration-500 hover:-translate-y-0.5 sm:w-auto sm:min-w-72"
             >
               Add to bag
