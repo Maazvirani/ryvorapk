@@ -29,7 +29,9 @@ export function SiteFooter() {
                 <Link to="/about" className="text-sm text-muted-foreground hover:text-gold">
                   Atelier
                 </Link>
-                <span className="text-sm text-muted-foreground">Shipping &amp; returns</span>
+                <Link to="/contact" className="text-sm text-muted-foreground hover:text-gold">
+                  Contact
+                </Link>
               </div>
               <div className="flex flex-col gap-3">
                 <span className="eyebrow">Follow</span>
