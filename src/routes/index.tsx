@@ -10,6 +10,7 @@ import { Marquee } from "@/components/site/Marquee";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
 import { products } from "@/lib/products";
 import hero from "@/assets/hero.jpg";
+import heroVideo from "@/assets/hero-loop.mp4.asset.json";
 import fabric from "@/assets/detail-fabric.jpg";
 import lookbook from "@/assets/lookbook.jpg";
 
@@ -46,12 +47,16 @@ function Home() {
       <SiteHeader />
 
       {/* Hero */}
-      <section ref={heroRef} className="relative h-[100svh] overflow-hidden">
-        <motion.img
-          src={hero}
-          alt="Model wearing the Ryvora Onyx heavyweight hoodie under gold studio light"
-          width={1600}
-          height={1920}
+      <section ref={heroRef} className="relative h-[100svh] min-h-[620px] overflow-hidden">
+        <motion.video
+          src={heroVideo.url}
+          poster={hero}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-label="Ryvora heavyweight hoodie film"
           style={{ y: imgY }}
           initial={{ scale: 1.12, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -62,7 +67,7 @@ function Home() {
 
         <motion.div
           style={{ y: textY, opacity: fade }}
-          className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-20 sm:px-8"
+          className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pt-28 pb-16 sm:px-8 sm:pb-20"
         >
           <motion.p
             initial={{ opacity: 0 }}
