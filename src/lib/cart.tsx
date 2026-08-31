@@ -1,79 +1,113 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 
-export type CartLine = {
-  slug: string;
-  name: string;
-  size: string;
-  price: number;
-  image: string;
-  colorway: string;
-  quantity: number;
-};
+import {
+  addCartLine,
+  createCart,
+  formatCheckoutUrl,
+  getCart,
+  removeCartLine,
+  updateCartLine,
+  type ShopifyCart,
+} from "@/lib/shopify";
 
 type CartContextValue = {
-  lines: CartLine[];
+  cart: ShopifyCart | null;
   count: number;
-  subtotal: number;
+  loading: boolean;
   open: boolean;
   setOpen: (open: boolean) => void;
-  addLine: (line: Omit<CartLine, "quantity">, quantity?: number) => void;
-  setQuantity: (slug: string, size: string, quantity: number) => void;
-  removeLine: (slug: string, size: string) => void;
-  clear: () => void;
+  addVariant: (variantId: string, quantity?: number) => Promise<void>;
+  setLineQuantity: (lineId: string, quantity: number) => Promise<void>;
+  removeLine: (lineId: string) => Promise<void>;
+  checkout: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = "ryvora-cart";
+const STORAGE_KEY = "ryvora-cart-id";
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>([]);
+  const [cart, setCart] = useState<ShopifyCart | null>(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const cartId = useRef<string | null>(null);
 
-  useEffect(() => {
+  const persist = (next: ShopifyCart | null) => {
+    setCart(next);
+    cartId.current = next?.id ?? null;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setLines(JSON.parse(raw) as CartLine[]);
-    } catch {
-      /* ignore corrupt cart */
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+      if (next?.id) localStorage.setItem(STORAGE_KEY, next.id);
+      else localStorage.removeItem(STORAGE_KEY);
     } catch {
       /* storage unavailable */
     }
-  }, [lines]);
+  };
+
+  // Restore the Shopify cart on load (and clear it once an order completes).
+  useEffect(() => {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    if (!stored) return;
+    cartId.current = stored;
+    getCart(stored)
+      .then(({ cart: fresh }) => persist(fresh && fresh.totalQuantity > 0 ? fresh : null))
+      .catch(() => persist(null));
+  }, []);
 
   const value = useMemo<CartContextValue>(() => {
-    const key = (slug: string, size: string) => `${slug}::${size}`;
+    const run = async (fn: () => Promise<{ cart: ShopifyCart | null; cartNotFound?: boolean }>) => {
+      setLoading(true);
+      try {
+        const { cart: next, cartNotFound } = await fn();
+        if (cartNotFound) {
+          persist(null);
+          toast.error("Your bag expired — please add the item again");
+          return;
+        }
+        if (next) persist(next);
+      } catch (error) {
+        console.error(error);
+        toast.error("Something went wrong with your bag");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return {
-      lines,
-      count: lines.reduce((n, l) => n + l.quantity, 0),
-      subtotal: lines.reduce((n, l) => n + l.quantity * l.price, 0),
+      cart,
+      count: cart?.totalQuantity ?? 0,
+      loading,
       open,
       setOpen,
-      addLine: (line, quantity = 1) =>
-        setLines((prev) => {
-          const existing = prev.find((l) => key(l.slug, l.size) === key(line.slug, line.size));
-          if (existing) {
-            return prev.map((l) =>
-              key(l.slug, l.size) === key(line.slug, line.size) ? { ...l, quantity: l.quantity + quantity } : l,
-            );
-          }
-          return [...prev, { ...line, quantity }];
-        }),
-      setQuantity: (slug, size, quantity) =>
-        setLines((prev) =>
-          quantity <= 0
-            ? prev.filter((l) => key(l.slug, l.size) !== key(slug, size))
-            : prev.map((l) => (key(l.slug, l.size) === key(slug, size) ? { ...l, quantity } : l)),
-        ),
-      removeLine: (slug, size) => setLines((prev) => prev.filter((l) => key(l.slug, l.size) !== key(slug, size))),
-      clear: () => setLines([]),
+      addVariant: async (variantId, quantity = 1) => {
+        const id = cartId.current;
+        await run(() => (id ? addCartLine(id, variantId, quantity) : createCart(variantId, quantity)));
+      },
+      setLineQuantity: async (lineId, quantity) => {
+        const id = cartId.current;
+        if (!id) return;
+        if (quantity <= 0) {
+          await run(() => removeCartLine(id, lineId));
+          return;
+        }
+        await run(() => updateCartLine(id, lineId, quantity));
+      },
+      removeLine: async (lineId) => {
+        const id = cartId.current;
+        if (!id) return;
+        await run(() => removeCartLine(id, lineId));
+      },
+      checkout: () => {
+        if (!cart?.checkoutUrl) return;
+        window.open(formatCheckoutUrl(cart.checkoutUrl), "_blank");
+        setOpen(false);
+      },
     };
-  }, [lines, open]);
+  }, [cart, loading, open]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -2,10 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { ProductCard } from "@/components/site/ProductCard";
+import { ProductGrid } from "@/components/site/ProductGrid";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
 import { Marquee } from "@/components/site/Marquee";
-import { products } from "@/lib/products";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -46,11 +45,7 @@ function Shop() {
       </header>
       <Marquee items={["Free worldwide shipping over $200", "Duties included", "30-day returns", "Made in Portugal"]} />
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8">
-        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((p, i) => (
-            <ProductCard key={p.slug} product={p} index={i} />
-          ))}
-        </div>
+        <ProductGrid className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3" />
       </section>
       <SiteFooter />
     </div>

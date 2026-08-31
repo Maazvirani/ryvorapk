@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { ProductCard } from "@/components/site/ProductCard";
+import { ProductGrid } from "@/components/site/ProductGrid";
 import { Marquee } from "@/components/site/Marquee";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
 import { products } from "@/lib/products";
