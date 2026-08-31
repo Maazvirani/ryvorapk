@@ -2,10 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { ProductCard } from "@/components/site/ProductCard";
+import { ProductGrid } from "@/components/site/ProductGrid";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
 import { Marquee } from "@/components/site/Marquee";
-import { products } from "@/lib/products";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
