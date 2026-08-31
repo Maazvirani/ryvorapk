@@ -45,11 +45,7 @@ function Shop() {
       </header>
       <Marquee items={["Free worldwide shipping over $200", "Duties included", "30-day returns", "Made in Portugal"]} />
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8">
-        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((p, i) => (
-            <ProductCard key={p.slug} product={p} index={i} />
-          ))}
-        </div>
+        <ProductGrid className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3" />
       </section>
       <SiteFooter />
     </div>
