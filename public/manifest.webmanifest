@@ -1,0 +1,16 @@
+{
+  "name": "Ryvora — Heavyweight Essentials",
+  "short_name": "Ryvora",
+  "description": "Ryvora heavyweight hoodies, cut in limited runs. Shop the collection and check out securely.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
