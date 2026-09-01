@@ -8,7 +8,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { ProductGrid } from "@/components/site/ProductGrid";
 import { Marquee } from "@/components/site/Marquee";
 import { Reveal, RevealWord } from "@/components/site/Reveal";
-import { products } from "@/lib/products";
+
 import hero from "@/assets/hero.jpg";
 import heroVideo from "@/assets/hero-loop.mp4.asset.json";
 import fabric from "@/assets/detail-fabric.jpg";
@@ -120,11 +120,7 @@ function Home() {
           </Link>
         </Reveal>
 
-        <div className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((p, i) => (
-            <ProductCard key={p.slug} product={p} index={i} />
-          ))}
-        </div>
+        <ProductGrid className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4" limit={4} />
       </section>
 
       {/* Craft split */}
