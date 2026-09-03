@@ -1,119 +1,58 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-
-import {
-  addCartLine,
-  createCart,
-  formatCheckoutUrl,
-  getCart,
-  removeCartLine,
-  updateCartLine,
-  type ShopifyCart,
-} from "@/lib/shopify";
+import { createOrder, type CartLine, type StoreProduct, type StoreVariant } from "@/lib/store";
 
 type CartContextValue = {
-  cart: ShopifyCart | null;
+  lines: CartLine[];
   count: number;
-  loading: boolean;
+  subtotal: number;
   open: boolean;
+  loading: boolean;
   setOpen: (open: boolean) => void;
-  addVariant: (variantId: string, quantity?: number) => Promise<void>;
-  setLineQuantity: (lineId: string, quantity: number) => Promise<void>;
-  removeLine: (lineId: string) => Promise<void>;
-  checkout: () => void;
+  addVariant: (product: StoreProduct, variant: StoreVariant, quantity?: number) => void;
+  setLineQuantity: (lineId: string, quantity: number) => void;
+  removeLine: (lineId: string) => void;
+  checkout: (customer: { name: string; email: string; phone: string; address: string; city: string; notes?: string }) => Promise<string | null>;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = "ryvora-cart-id";
+const STORAGE_KEY = "ryvora-cart";
+
+function loadCart(): CartLine[] {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<ShopifyCart | null>(null);
+  const [lines, setLines] = useState<CartLine[]>(() => typeof window === "undefined" ? [] : loadCart());
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const cartId = useRef<string | null>(null);
+  const persist = (next: CartLine[]) => { setLines(next); try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {} };
 
-  const persist = (next: ShopifyCart | null) => {
-    setCart(next);
-    cartId.current = next?.id ?? null;
-    try {
-      if (next?.id) localStorage.setItem(STORAGE_KEY, next.id);
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* storage unavailable */
-    }
-  };
-
-  // Restore the Shopify cart on load (and clear it once an order completes).
-  useEffect(() => {
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-    if (!stored) return;
-    cartId.current = stored;
-    getCart(stored)
-      .then(({ cart: fresh }) => persist(fresh && fresh.totalQuantity > 0 ? fresh : null))
-      .catch(() => persist(null));
-  }, []);
-
-  const value = useMemo<CartContextValue>(() => {
-    const run = async (fn: () => Promise<{ cart: ShopifyCart | null; cartNotFound?: boolean }>) => {
+  const value = useMemo<CartContextValue>(() => ({
+    lines,
+    count: lines.reduce((n, l) => n + l.quantity, 0),
+    subtotal: lines.reduce((n, l) => n + Number(l.variant.price_pkr) * l.quantity, 0),
+    open,
+    loading,
+    setOpen,
+    addVariant: (product, variant, quantity = 1) => {
+      const existing = lines.find(l => l.variant.id === variant.id);
+      persist(existing ? lines.map(l => l.variant.id === variant.id ? { ...l, quantity: l.quantity + quantity } : l) : [...lines, { id: crypto.randomUUID(), product, variant, quantity }]);
+      setOpen(true);
+    },
+    setLineQuantity: (lineId, quantity) => quantity <= 0 ? persist(lines.filter(l => l.id !== lineId)) : persist(lines.map(l => l.id === lineId ? { ...l, quantity } : l)),
+    removeLine: (lineId) => persist(lines.filter(l => l.id !== lineId)),
+    checkout: async (customer) => {
+      if (!lines.length) return null;
       setLoading(true);
       try {
-        const { cart: next, cartNotFound } = await fn();
-        if (cartNotFound) {
-          persist(null);
-          toast.error("Your bag expired — please add the item again");
-          return;
-        }
-        if (next) persist(next);
-      } catch (error) {
-        console.error(error);
-        toast.error("Something went wrong with your bag");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return {
-      cart,
-      count: cart?.totalQuantity ?? 0,
-      loading,
-      open,
-      setOpen,
-      addVariant: async (variantId, quantity = 1) => {
-        const id = cartId.current;
-        await run(() => (id ? addCartLine(id, variantId, quantity) : createCart(variantId, quantity)));
-      },
-      setLineQuantity: async (lineId, quantity) => {
-        const id = cartId.current;
-        if (!id) return;
-        if (quantity <= 0) {
-          await run(() => removeCartLine(id, lineId));
-          return;
-        }
-        await run(() => updateCartLine(id, lineId, quantity));
-      },
-      removeLine: async (lineId) => {
-        const id = cartId.current;
-        if (!id) return;
-        await run(() => removeCartLine(id, lineId));
-      },
-      checkout: () => {
-        if (!cart?.checkoutUrl) return;
-        window.open(formatCheckoutUrl(cart.checkoutUrl), "_blank");
-        setOpen(false);
-      },
-    };
-  }, [cart, loading, open]);
-
+        const result = await createOrder(customer, lines);
+        persist([]); setOpen(false); toast.success("Order received. We will contact you to confirm it."); return result.id;
+      } catch (error) { console.error(error); toast.error("We could not place your order. Please try again."); return null; }
+      finally { setLoading(false); }
+    },
+  }), [lines, open, loading]);
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-export function useCart() {
-  const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used inside CartProvider");
-  return ctx;
-}
+export function useCart() { const ctx = useContext(CartContext); if (!ctx) throw new Error("useCart must be used inside CartProvider"); return ctx; }
