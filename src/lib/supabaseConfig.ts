@@ -19,7 +19,8 @@ export const SUPABASE_URL_FALLBACK = "https://hfczfnaaqwsmvgahiygc.supabase.co";
  * Paste the project's anon / publishable key here (starts with `eyJ...` or
  * `sb_publishable_...`). Found in Supabase → Project Settings → API.
  */
-export const SUPABASE_PUBLISHABLE_KEY_FALLBACK = "";
+export const SUPABASE_PUBLISHABLE_KEY_FALLBACK =
+  "sb_publishable_AfyF3k8-uEzorkoYC98D-Q_QRlgkuvS";
 
 const envUrl = import.meta.env['VITE_SUPABASE_URL'] as string | undefined;
 const envKey = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] as string | undefined;
