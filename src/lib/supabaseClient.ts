@@ -1,28 +1,25 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./supabaseConfig";
 
 /**
- * Browser Supabase client for the existing Ryvora Supabase project.
+ * Browser Supabase client for the existing Ryvora Supabase project
+ * (hfczfnaaqwsmvgahiygc).
  *
- * Reads only public, client-safe values:
- *   VITE_SUPABASE_URL
- *   VITE_SUPABASE_PUBLISHABLE_KEY   (anon / publishable key)
+ * Values come from src/lib/supabaseConfig.ts, which prefers VITE_ env vars and
+ * otherwise falls back to committed public values — so the deployed app works
+ * without any secrets feature.
  *
  * Never put a service-role or secret key in this file — it ships to the browser.
  */
-const supabaseUrl = import.meta.env['VITE_SUPABASE_URL'] as string | undefined;
-const supabasePublishableKey = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] as
-  | string
-  | undefined;
-
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
 let client: SupabaseClient | null = null;
 
-/** Returns the Supabase client, or null when the env vars are not configured yet. */
+/** Returns the Supabase client, or null when the publishable key is not set yet. */
 export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (!client) {
-    client = createClient(supabaseUrl!, supabasePublishableKey!, {
+    client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: typeof window !== "undefined",
         autoRefreshToken: typeof window !== "undefined",
@@ -47,7 +44,8 @@ export async function checkUsersTable(): Promise<{
     return {
       ok: false,
       count: null,
-      message: "Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY.",
+      message:
+        "Supabase publishable key missing — set SUPABASE_PUBLISHABLE_KEY_FALLBACK in src/lib/supabaseConfig.ts (or VITE_SUPABASE_PUBLISHABLE_KEY).",
     };
   }
 
