@@ -5,7 +5,7 @@
   "main": "./dist/server/index.mjs",
   "assets": {
     "directory": "./dist/client",
-    "binding": "ASSETS"
+    "binding": "RYVORA_ASSETS"
   },
   "observability": {
     "enabled": true
