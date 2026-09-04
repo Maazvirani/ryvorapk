@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { createOrder, type CartLine, type StoreProduct, type StoreVariant } from "@/lib/store";
+import { startShopifyCheckout } from "@/lib/shopify";
+import type { CartLine, StoreProduct, StoreVariant } from "@/lib/store";
 
 type CartContextValue = {
   lines: CartLine[];
@@ -12,7 +13,7 @@ type CartContextValue = {
   addVariant: (product: StoreProduct, variant: StoreVariant, quantity?: number) => void;
   setLineQuantity: (lineId: string, quantity: number) => void;
   removeLine: (lineId: string) => void;
-  checkout: (customer: { name: string; email: string; phone: string; address: string; city: string; notes?: string }) => Promise<string | null>;
+  checkout: () => Promise<boolean>;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -42,14 +43,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
     setLineQuantity: (lineId, quantity) => quantity <= 0 ? persist(lines.filter(l => l.id !== lineId)) : persist(lines.map(l => l.id === lineId ? { ...l, quantity } : l)),
     removeLine: (lineId) => persist(lines.filter(l => l.id !== lineId)),
-    checkout: async (customer) => {
-      if (!lines.length) return null;
+    checkout: async () => {
+      if (!lines.length) return false;
       setLoading(true);
       try {
-        const result = await createOrder(customer, lines);
-        persist([]); setOpen(false); toast.success("Order received. We will contact you to confirm it."); return result.id;
-      } catch (error) { console.error(error); toast.error("We could not place your order. Please try again."); return null; }
-      finally { setLoading(false); }
+        const ok = await startShopifyCheckout(lines.map(line => ({ variantId: line.variant.id, quantity: line.quantity })));
+        if (ok) setOpen(false);
+        return ok;
+      } catch (error) {
+        console.error(error);
+        toast.error("We could not start checkout. Please try again.");
+        return false;
+      } finally {
+        setLoading(false);
+      }
     },
   }), [lines, open, loading]);
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
