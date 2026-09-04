@@ -1,5 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./supabaseConfig";
+import productOnyx from "@/assets/product-onyx.jpg";
+import productBone from "@/assets/product-bone.jpg";
+import productEspresso from "@/assets/product-espresso.jpg";
+import productSlate from "@/assets/product-slate.jpg";
+import hero from "@/assets/hero.jpg";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
@@ -46,12 +51,12 @@ export async function fetchProductByHandle(handle: string): Promise<StoreProduct
 
 export function productImage(key: string | null) {
   const images: Record<string, string> = {
-    "product-onyx": "/src/assets/product-onyx.jpg",
-    "product-bone": "/src/assets/product-bone.jpg",
-    "product-espresso": "/src/assets/product-espresso.jpg",
-    "product-slate": "/src/assets/product-slate.jpg",
+    "product-onyx": productOnyx,
+    "product-bone": productBone,
+    "product-espresso": productEspresso,
+    "product-slate": productSlate,
   };
-  return key ? images[key] ?? "/src/assets/hero.jpg" : "/src/assets/hero.jpg";
+  return key ? images[key] ?? hero : hero;
 }
 
 export function formatMoney(amount: string | number, currency = "PKR") {
