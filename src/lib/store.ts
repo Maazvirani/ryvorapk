@@ -19,6 +19,13 @@ export type StoreProduct = {
   product_variants: StoreVariant[];
 };
 
+export type CartLine = {
+  id: string;
+  product: StoreProduct;
+  variant: StoreVariant;
+  quantity: number;
+};
+
 function toStoreProduct(product: ShopifyProduct): StoreProduct {
   const image = product.images.edges[0]?.node.url ?? null;
   return {
@@ -52,7 +59,6 @@ export async function fetchProductByHandle(handle: string): Promise<StoreProduct
   return product ? toStoreProduct(product) : null;
 }
 
-// Kept for compatibility with the existing UI. Shopify now supplies the canonical product image URL.
 export function productImage(imageUrl: string | null) {
   return imageUrl ?? "";
 }
