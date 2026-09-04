@@ -1,11 +1,11 @@
 import { toast } from "sonner";
 
-export const SHOPIFY_API_VERSION = "2025-07";
+export const SHOPIFY_API_VERSION = "2026-07";
 export const SHOPIFY_STORE_PERMANENT_DOMAIN = "pcwun0-sm.myshopify.com";
 export const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/${SHOPIFY_API_VERSION}/graphql.json`;
 
-// The Storefront token must be supplied through the deployment environment.
-// Never commit Shopify access tokens to source control.
+// Public Storefront API requests can use Shopify's tokenless access for products and cart.
+// Keep the token optional so checkout does not depend on a deployment secret.
 const SHOPIFY_STOREFRONT_TOKEN = (import.meta.env["VITE_SHOPIFY_STOREFRONT_TOKEN"] as string | undefined)?.trim() ?? "";
 
 export type ShopifyVariant = {
@@ -29,28 +29,14 @@ export type ShopifyProduct = {
 };
 
 export async function storefrontApiRequest<T = any>(query: string, variables: Record<string, unknown> = {}) {
-  if (!SHOPIFY_STOREFRONT_TOKEN) {
-    toast.error("Shopify is not configured", {
-      description: "The storefront access token is missing from the deployment environment.",
-    });
-    return null;
-  }
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (SHOPIFY_STOREFRONT_TOKEN) headers["X-Shopify-Storefront-Access-Token"] = SHOPIFY_STOREFRONT_TOKEN;
 
   const response = await fetch(SHOPIFY_STOREFRONT_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_TOKEN,
-    },
+    headers,
     body: JSON.stringify({ query, variables }),
   });
-
-  if (response.status === 402) {
-    toast.error("Shopify: payment required", {
-      description: "Store API access needs an active Shopify billing plan.",
-    });
-    return null;
-  }
 
   if (!response.ok) {
     const body = await response.text();
@@ -84,22 +70,11 @@ const PRODUCT_FIELDS = `
   options { name values }
 `;
 
-const PRODUCTS_QUERY = `
-  query GetProducts($first: Int!) {
-    products(first: $first) { edges { node { ${PRODUCT_FIELDS} } } }
-  }
-`;
-
-const PRODUCT_BY_HANDLE_QUERY = `
-  query GetProduct($handle: String!) {
-    product(handle: $handle) { ${PRODUCT_FIELDS} }
-  }
-`;
+const PRODUCTS_QUERY = `query GetProducts($first: Int!) { products(first: $first) { edges { node { ${PRODUCT_FIELDS} } } } }`;
+const PRODUCT_BY_HANDLE_QUERY = `query GetProduct($handle: String!) { product(handle: $handle) { ${PRODUCT_FIELDS} } }`;
 
 export async function fetchProducts(first = 24): Promise<ShopifyProduct[]> {
-  const res = await storefrontApiRequest<{ products: { edges: Array<{ node: ShopifyProduct }> } }>(PRODUCTS_QUERY, {
-    first,
-  });
+  const res = await storefrontApiRequest<{ products: { edges: Array<{ node: ShopifyProduct }> } }>(PRODUCTS_QUERY, { first });
   return res?.data?.products.edges.map((e) => e.node) ?? [];
 }
 
@@ -120,10 +95,10 @@ export const productQueryOptions = (handle: string) => ({
   staleTime: 5 * 60 * 1000,
 });
 
-export function formatMoney(amount: string | number, currencyCode = "USD") {
+export function formatMoney(amount: string | number, currencyCode = "PKR") {
   const value = typeof amount === "string" ? Number.parseFloat(amount) : amount;
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-PK", {
       style: "currency",
       currency: currencyCode,
       maximumFractionDigits: 0,
@@ -133,139 +108,53 @@ export function formatMoney(amount: string | number, currencyCode = "USD") {
   }
 }
 
-/* ---------------- Cart (Storefront API) ---------------- */
+export type ShopifyCheckoutLine = { variantId: string; quantity: number };
 
-const CART_FIELDS = `
-  id
-  checkoutUrl
-  totalQuantity
-  cost { subtotalAmount { amount currencyCode } totalAmount { amount currencyCode } }
-  lines(first: 100) {
-    edges {
-      node {
-        id
-        quantity
-        merchandise {
-          ... on ProductVariant {
-            id
-            title
-            price { amount currencyCode }
-            image { url altText }
-            product { title handle }
-          }
-        }
-      }
+const CART_CREATE = `
+  mutation cartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart { id checkoutUrl }
+      userErrors { field message }
+      warnings { code message }
     }
   }
 `;
 
-const CART_QUERY = `query cart($id: ID!) { cart(id: $id) { ${CART_FIELDS} } }`;
-const CART_CREATE = `
-  mutation cartCreate($input: CartInput!) {
-    cartCreate(input: $input) { cart { ${CART_FIELDS} } userErrors { field message } }
-  }
-`;
-const CART_LINES_ADD = `
-  mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-    cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ${CART_FIELDS} } userErrors { field message } }
-  }
-`;
-const CART_LINES_UPDATE = `
-  mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
-    cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ${CART_FIELDS} } userErrors { field message } }
-  }
-`;
-const CART_LINES_REMOVE = `
-  mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
-    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ${CART_FIELDS} } userErrors { field message } }
-  }
-`;
+export async function createShopifyCheckout(lines: ShopifyCheckoutLine[]): Promise<string | null> {
+  const validLines = lines.filter((line) => line.variantId && line.quantity > 0);
+  if (!validLines.length) throw new Error("Your cart is empty.");
 
-export type ShopifyCart = {
-  id: string;
-  checkoutUrl: string;
-  totalQuantity: number;
-  cost: {
-    subtotalAmount: { amount: string; currencyCode: string };
-    totalAmount: { amount: string; currencyCode: string };
-  };
-  lines: {
-    edges: Array<{
-      node: {
-        id: string;
-        quantity: number;
-        merchandise: {
-          id: string;
-          title: string;
-          price: { amount: string; currencyCode: string };
-          image: { url: string; altText: string | null } | null;
-          product: { title: string; handle: string };
-        };
-      };
-    }>;
-  };
-};
-
-export function formatCheckoutUrl(checkoutUrl: string) {
-  try {
-    const url = new URL(checkoutUrl);
-    url.searchParams.set("channel", "online_store");
-    return url.toString();
-  } catch {
-    return checkoutUrl;
-  }
-}
-
-function isCartNotFound(userErrors: Array<{ message: string }> = []) {
-  return userErrors.some(
-    (e) => e.message.toLowerCase().includes("cart not found") || e.message.toLowerCase().includes("does not exist"),
-  );
-}
-
-type CartResult = { cart: ShopifyCart | null; cartNotFound?: boolean };
-
-function unwrap(payload: { cart: ShopifyCart | null; userErrors?: Array<{ message: string }> } | undefined): CartResult {
-  if (!payload) return { cart: null };
-  if (isCartNotFound(payload.userErrors)) return { cart: null, cartNotFound: true };
-  if (payload.userErrors?.length) {
-    console.error("Shopify cart error:", payload.userErrors);
-    return { cart: null };
-  }
-  return { cart: payload.cart };
-}
-
-export async function getCart(cartId: string): Promise<CartResult> {
-  const res = await storefrontApiRequest<{ cart: ShopifyCart | null }>(CART_QUERY, { id: cartId });
-  return { cart: res?.data?.cart ?? null, cartNotFound: res ? !res.data?.cart : false };
-}
-
-export async function createCart(variantId: string, quantity: number): Promise<CartResult> {
-  const res = await storefrontApiRequest<{ cartCreate: { cart: ShopifyCart | null; userErrors: any[] } }>(CART_CREATE, {
-    input: { lines: [{ merchandiseId: variantId, quantity }] },
+  const res = await storefrontApiRequest<{
+    cartCreate: {
+      cart: { id: string; checkoutUrl: string } | null;
+      userErrors: Array<{ field: string[] | null; message: string }>;
+      warnings: Array<{ code: string; message: string }>;
+    };
+  }>(CART_CREATE, {
+    input: {
+      lines: validLines.map((line) => ({ merchandiseId: line.variantId, quantity: line.quantity })),
+    },
   });
-  return unwrap(res?.data?.cartCreate);
+
+  const payload = res?.data?.cartCreate;
+  if (!payload) throw new Error("Shopify did not return a checkout.");
+  if (payload.userErrors.length) throw new Error(payload.userErrors.map((e) => e.message).join(", "));
+  if (!payload.cart?.checkoutUrl) throw new Error("Shopify did not return a checkout URL.");
+
+  return payload.cart.checkoutUrl;
 }
 
-export async function addCartLine(cartId: string, variantId: string, quantity: number): Promise<CartResult> {
-  const res = await storefrontApiRequest<{ cartLinesAdd: { cart: ShopifyCart | null; userErrors: any[] } }>(
-    CART_LINES_ADD,
-    { cartId, lines: [{ merchandiseId: variantId, quantity }] },
-  );
-  return unwrap(res?.data?.cartLinesAdd);
-}
-
-export async function updateCartLine(cartId: string, lineId: string, quantity: number): Promise<CartResult> {
-  const res = await storefrontApiRequest<{ cartLinesUpdate: { cart: ShopifyCart | null; userErrors: any[] } }>(
-    CART_LINES_UPDATE,
-    { cartId, lines: [{ id: lineId, quantity }] },
-  );
-  return unwrap(res?.data?.cartLinesUpdate);
-}
-
-export async function removeCartLine(cartId: string, lineId: string): Promise<CartResult> {
-  const res = await storefrontApiRequest<{ cartLinesRemove: { cart: ShopifyCart | null; userErrors: any[] } }>(
-    CART_LINES_REMOVE,
-    { cartId, lineIds: [lineId] },
-  );
-  return unwrap(res?.data?.cartLinesRemove);
+export async function startShopifyCheckout(lines: ShopifyCheckoutLine[]) {
+  try {
+    const checkoutUrl = await createShopifyCheckout(lines);
+    if (!checkoutUrl) return false;
+    window.location.assign(checkoutUrl);
+    return true;
+  } catch (error) {
+    console.error("Shopify checkout error:", error);
+    toast.error("Checkout could not be started", {
+      description: error instanceof Error ? error.message : "Please try again.",
+    });
+    return false;
+  }
 }
