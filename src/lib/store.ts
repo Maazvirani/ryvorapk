@@ -67,17 +67,40 @@ export function formatMoney(amount: string | number, currency = "PKR") {
 export type CartLine = { id: string; product: StoreProduct; variant: StoreVariant; quantity: number };
 
 export async function createOrder(customer: { name: string; email: string; phone: string; address: string; city: string; notes?: string }, lines: CartLine[]) {
+  if (!lines.length) throw new Error("Your cart is empty.");
+
   const subtotal = lines.reduce((sum, line) => sum + Number(line.variant.price_pkr) * line.quantity, 0);
-  const { data: order, error } = await supabase
-    .from("orders")
-    .insert({ customer_name: customer.name, email: customer.email || null, phone: customer.phone, address: customer.address, city: customer.city, notes: customer.notes || null, subtotal_pkr: subtotal, status: "pending" })
-    .select("id")
-    .single();
-  if (error) throw error;
-  const items = lines.map((line) => ({ order_id: order.id, product_id: line.product.id, variant_id: line.variant.id, product_title: line.product.title, variant_title: line.variant.title, quantity: line.quantity, unit_price_pkr: line.variant.price_pkr }));
+  const orderId = crypto.randomUUID();
+
+  // Do not request the inserted order back with .select(): public checkout intentionally
+  // has no SELECT access to customer orders. Generate the UUID client-side instead.
+  const { error: orderError } = await supabase.from("orders").insert({
+    id: orderId,
+    customer_name: customer.name,
+    email: customer.email || null,
+    phone: customer.phone,
+    address: customer.address,
+    city: customer.city,
+    notes: customer.notes || null,
+    subtotal_pkr: subtotal,
+    status: "pending",
+  });
+  if (orderError) throw orderError;
+
+  const items = lines.map((line) => ({
+    order_id: orderId,
+    product_id: line.product.id,
+    variant_id: line.variant.id,
+    product_title: line.product.title,
+    variant_title: line.variant.title,
+    quantity: line.quantity,
+    unit_price_pkr: line.variant.price_pkr,
+  }));
+
   const { error: itemError } = await supabase.from("order_items").insert(items);
   if (itemError) throw itemError;
-  return { id: order.id, subtotal };
+
+  return { id: orderId, subtotal };
 }
 
 export const productsQueryOptions = {
