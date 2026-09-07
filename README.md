@@ -1,28 +1,58 @@
-# Ryvora: Animated Boutique
+# RYVORA
 
-Create a new project with Shopify enabled. 
+Premium ecommerce storefront for RYVORA, a modern menswear brand.
 
-Uh, make me a clothing brand with the name Ryvora. R-Y-V-O-R-A, Ryvora. Make it a professional theme, professional animated b-business website for selling, uh, clothes. Okay, make it bold, different and professional. Ask questions and make it animated, the products and the website, and ask questions if you require any
+## Overview
 
-This project was built with [Lovable](https://lovable.dev).
+RYVORA is a responsive, animated ecommerce frontend built with React and TypeScript. The storefront is designed around a minimal editorial visual system and integrates with Shopify for commerce functionality.
 
-**Live app**: https://ryvorapk.lovable.app
+## Technology
 
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f2764ba6-bab7-44ba-8952-0d8a409d9757).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+- React
+- TypeScript
+- TanStack Router
+- Vite
+- Shopify Storefront API
+- Cloudflare Pages
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+### Requirements
+
+- Node.js
+- npm
+
+### Setup
 
 ```sh
-git clone <this-repository-url>
+git clone <repository-url>
 cd <repository-name>
-npm i
+npm install
 npm run dev
 ```
+
+### Production build
+
+```sh
+npm run build
+```
+
+## Deployment
+
+The application can be deployed as a static frontend through Cloudflare Pages. See `CLOUDFLARE_DEPLOYMENT.md` for deployment configuration and handover notes.
+
+## Commerce
+
+Shopify is used as the commerce backend for catalog, cart, checkout, orders, and inventory. Store-specific credentials and environment configuration should be supplied through deployment environment variables rather than committed secrets.
+
+## Ownership handover
+
+When transferring this project to a new owner:
+
+1. Transfer the GitHub repository.
+2. Connect the repository to the new owner's Cloudflare account.
+3. Configure required environment variables in the new deployment.
+4. Transfer or reconnect the Shopify store.
+5. Connect the production domain and verify the deployment.
+
+Do not commit passwords, private API credentials, or account recovery information to this repository.
